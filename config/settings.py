@@ -70,6 +70,9 @@ REST_FRAMEWORK = {
     ],
 }
 
+MOVEMENT_PAGE_SIZE_MAX = int(os.getenv("MOVEMENT_PAGE_SIZE_MAX", "100"))
+MOVEMENT_EXPORT_MAX_ROWS = int(os.getenv("MOVEMENT_EXPORT_MAX_ROWS", "500000"))
+
 FABRIC_WAREHOUSE_SERVER = os.getenv(
     "FABRIC_WAREHOUSE_SERVER",
     "gh5sughwadpurfndk6z762tuuq-fvbqi3ipc7nuxhuw4ucuzeepkm.datawarehouse.fabric.microsoft.com",

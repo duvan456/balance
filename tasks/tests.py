@@ -1,8 +1,11 @@
+from django.test import SimpleTestCase
 from rest_framework import status
 from rest_framework.test import APITestCase
 from unittest.mock import patch
 
 from .models import Task
+from .serializers import MovementQuerySerializer
+from .source_registry import resolve_rubro_interval_coverage
 
 
 class TaskApiTests(APITestCase):
@@ -55,3 +58,126 @@ class WarehouseApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data, fetch_rows.return_value)
         fetch_rows.assert_called_once()
+
+
+class MovementQuerySerializerTests(SimpleTestCase):
+    def test_valid_accounting_date_query(self):
+        payload = {
+            "date_type": "ACCOUNTING_DATE",
+            "date_from": "2026-08-01",
+            "date_to": "2026-08-31",
+            "initial_rubro": 100000,
+            "final_rubro": 199999,
+            "page": 1,
+            "page_size": 100,
+            "sorting": [{"field": "accounting_date", "direction": "asc"}],
+        }
+
+        serializer = MovementQuerySerializer(data=payload)
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+
+    def test_invalid_date_range_is_rejected(self):
+        payload = {
+            "date_type": "ACCOUNTING_DATE",
+            "date_from": "2026-08-31",
+            "date_to": "2026-08-01",
+            "initial_rubro": 100000,
+            "final_rubro": 199999,
+            "page": 1,
+            "page_size": 25,
+        }
+
+        serializer = MovementQuerySerializer(data=payload)
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("date_from", serializer.errors)
+
+    def test_invalid_rubro_range_is_rejected(self):
+        payload = {
+            "date_type": "ACCOUNTING_DATE",
+            "date_from": "2026-08-01",
+            "date_to": "2026-08-31",
+            "initial_rubro": 300000,
+            "final_rubro": 100000,
+            "page": 1,
+            "page_size": 25,
+        }
+
+        serializer = MovementQuerySerializer(data=payload)
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("initial_rubro", serializer.errors)
+
+    def test_unsupported_interval_is_rejected(self):
+        payload = {
+            "date_type": "ACCOUNTING_DATE",
+            "date_from": "2026-08-01",
+            "date_to": "2026-08-31",
+            "initial_rubro": 650000,
+            "final_rubro": 820000,
+            "page": 1,
+            "page_size": 25,
+        }
+
+        serializer = MovementQuerySerializer(data=payload)
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("initial_rubro", serializer.errors)
+
+    def test_sorts_only_authorized_fields(self):
+        payload = {
+            "date_type": "ACCOUNTING_DATE",
+            "date_from": "2026-08-01",
+            "date_to": "2026-08-31",
+            "initial_rubro": 100000,
+            "final_rubro": 199999,
+            "page": 1,
+            "page_size": 25,
+            "sorting": [{"field": "customer_name", "direction": "asc"}],
+        }
+
+        serializer = MovementQuerySerializer(data=payload)
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("sorting", serializer.errors)
+
+    def test_nit_is_treated_as_text(self):
+        payload = {
+            "date_type": "ACCOUNTING_VALUE_DATE",
+            "date_from": "2026-08-01",
+            "date_to": "2026-08-31",
+            "initial_rubro": 150000,
+            "final_rubro": 199999,
+            "nit": "001234567-9",
+            "page": 1,
+            "page_size": 25,
+        }
+
+        serializer = MovementQuerySerializer(data=payload)
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        self.assertEqual(serializer.validated_data["nit"], "001234567-9")
+
+    def test_page_size_respects_global_limit(self):
+        payload = {
+            "date_type": "ACCOUNTING_DATE",
+            "date_from": "2026-08-01",
+            "date_to": "2026-08-31",
+            "initial_rubro": 100000,
+            "final_rubro": 199999,
+            "page": 1,
+            "page_size": 999,
+        }
+
+        serializer = MovementQuerySerializer(data=payload)
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("page_size", serializer.errors)
+
+
+class SourceRegistryTests(SimpleTestCase):
+    def test_range_coverage_for_multiple_sources(self):
+        coverage = resolve_rubro_interval_coverage(150000, 250000)
+
+        self.assertEqual(len(coverage["covered"]), 2)
+        self.assertEqual(coverage["source_tables"], ["dbo.Activo", "dbo.Pasivo"])
+
+    def test_range_coverage_detects_unsupported_prefix(self):
+        coverage = resolve_rubro_interval_coverage(650000, 820000)
+
+        self.assertTrue(coverage["uncovered"])
+        self.assertEqual(coverage["uncovered"][0]["prefix"], 7)
