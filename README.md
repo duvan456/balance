@@ -6,7 +6,7 @@ A small Django REST Framework API for managing tasks.
 
 ```powershell
 python -m venv .venv
-.\.venv\Scripts\Activate.ps1
+.\.venv\Scripts\Activate
 python -m pip install -r requirements.txt
 python manage.py migrate
 python manage.py runserver
