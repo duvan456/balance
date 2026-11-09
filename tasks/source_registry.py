@@ -1,45 +1,50 @@
+RUBRO_SCALE = 1_000_000_000
+RUBRO_MIN_VALUE = RUBRO_SCALE
+RUBRO_MAX_VALUE = 9_999_999_999
+
+
 SOURCE_REGISTRY = {
     1: {
         "source_key": "ASSET",
         "table": "dbo.Activo",
         "informational": False,
-        "prefix_range": (100000, 199999),
+        "prefix_range": (RUBRO_SCALE, 2 * RUBRO_SCALE - 1),
     },
     2: {
         "source_key": "LIABILITY",
         "table": "dbo.Pasivo",
         "informational": False,
-        "prefix_range": (200000, 299999),
+        "prefix_range": (2 * RUBRO_SCALE, 3 * RUBRO_SCALE - 1),
     },
     3: {
         "source_key": "EQUITY",
         "table": "dbo.Patrimonio",
         "informational": False,
-        "prefix_range": (300000, 399999),
+        "prefix_range": (3 * RUBRO_SCALE, 4 * RUBRO_SCALE - 1),
     },
     4: {
         "source_key": "INCOME",
         "table": "dbo.Ingreso",
         "informational": False,
-        "prefix_range": (400000, 499999),
+        "prefix_range": (4 * RUBRO_SCALE, 5 * RUBRO_SCALE - 1),
     },
     5: {
         "source_key": "EXPENSE",
         "table": "dbo.Gasto",
         "informational": False,
-        "prefix_range": (500000, 599999),
+        "prefix_range": (5 * RUBRO_SCALE, 6 * RUBRO_SCALE - 1),
     },
     6: {
         "source_key": "INFORMATIONAL_ACCOUNT",
         "table": "dbo.CTARevInfo",
         "informational": True,
-        "prefix_range": (600000, 699999),
+        "prefix_range": (6 * RUBRO_SCALE, 7 * RUBRO_SCALE - 1),
     },
     8: {
         "source_key": "CONTROL_ACCOUNT",
         "table": "dbo.CTARevControl",
         "informational": True,
-        "prefix_range": (800000, 899999),
+        "prefix_range": (8 * RUBRO_SCALE, 9 * RUBRO_SCALE - 1),
     },
 }
 
@@ -73,8 +78,8 @@ def resolve_rubro_interval_coverage(initial_rubro, final_rubro):
             )
 
     for prefix in UNSUPPORTED_PREFIXES:
-        start = prefix * 100000
-        end = start + 99999
+        start = prefix * RUBRO_SCALE
+        end = start + RUBRO_SCALE - 1
         if initial_rubro <= end and final_rubro >= start:
             uncovered.append(
                 {

@@ -1,5 +1,6 @@
 import csv
 import io
+import logging
 import uuid
 
 from django.conf import settings
@@ -12,6 +13,9 @@ from .query_compiler import build_column_metadata, compile_count_query, compile_
 from .query_planner import build_query_plan
 from .serializers import MovementQuerySerializer
 from .warehouse import execute_query
+
+
+logger = logging.getLogger(__name__)
 
 
 class MovementQueryView(APIView):
@@ -50,6 +54,7 @@ class MovementQueryView(APIView):
             }
             return Response(payload, status=status.HTTP_200_OK)
         except Exception:
+            logger.exception("Error consultando movimientos en el warehouse")
             return Response({"detail": "No fue posible consultar movimientos."}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
 
@@ -92,4 +97,5 @@ class MovementExportView(APIView):
             response["X-Correlation-ID"] = str(uuid.uuid4())
             return response
         except Exception:
+            logger.exception("Error exportando movimientos desde el warehouse")
             return Response({"detail": "No fue posible exportar movimientos."}, status=status.HTTP_503_SERVICE_UNAVAILABLE)

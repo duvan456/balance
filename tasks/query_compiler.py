@@ -33,12 +33,6 @@ MOVEMENT_COLUMNS = [
 ]
 
 
-def qs(source_table: str) -> str:
-    if source_table.endswith("Activo"):
-        return "Modenaorigen"
-    return "Modenaorigen"
-
-
 def build_source_select(plan: QueryPlan, source) -> Tuple[str, List[Any]]:
     table = source.table
     date_column = source.date_column
@@ -67,11 +61,8 @@ def build_source_select(plan: QueryPlan, source) -> Tuple[str, List[Any]]:
         extra_filters.append("Sucursal = ?")
         params.append(plan.branch)
 
-    source_currency_field = qs(table)
-    if table in {"dbo.Patrimonio", "dbo.CTARevInfo", "dbo.CTARevControl"}:
-        source_currency_sql = "CAST(NULL AS DECIMAL(38, 6)) AS source_currency"
-    else:
-        source_currency_sql = f"{source_currency_field} AS source_currency"
+    # The warehouse tables do not expose a source-currency column.
+    source_currency_sql = "CAST(NULL AS nvarchar(32)) AS source_currency"
 
     sql = f"""
         SELECT

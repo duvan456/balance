@@ -14,23 +14,9 @@ def get_connection():
     return pyodbc.connect(connection_string, timeout=15)
 
 
-def execute_query(query, params=None):
-    connection = get_connection()
-    cursor = None
-    try:
-        cursor = connection.cursor()
-        if params is None:
-            cursor.execute(query)
-        else:
-            cursor.execute(query, params)
-        columns = [column[0] for column in cursor.description]
-        rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
-        return rows
-    finally:
-        if cursor is not None:
-            cursor.close()
-        connection.close()
-
-
 def fetch_rows(query):
-    return execute_query(query)
+    with get_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute(query)
+        columns = [column[0] for column in cursor.description]
+        return [dict(zip(columns, row)) for row in cursor.fetchall()]
